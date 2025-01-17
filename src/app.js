@@ -5,6 +5,9 @@ const app = express();
 const port = 3000;
 
 
+app.use("/user",(req,res) => {
+    res.send("Welcome to DevX");
+});
 
 // this app.get() will only match get api call to /user
 
