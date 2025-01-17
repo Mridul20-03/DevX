@@ -1,22 +1,26 @@
+
 const express = require('express');
 //create an express js application
 const app = express();
 
 const port = 3000;
 
-app.use("/user",(req,res,next) => {
-    console.log("Handling route user 1");
-    next();
-    //res.send("Response 1!!");
-}, (req,res,next) => {
-    console.log("Handling route user 2");
-    //res.send("Response 2!!");
-    next();
-}, (req,res,next) => {
-    console.log("Handling route user 3");
-    res.send("Response 3!!");
-    //next();
+const  { adminAuth } = require('./middlewares/auth.js');
 
+
+//Handle Auth Middleware for all requests Get and post etc
+app.use("/admin",adminAuth);
+
+app.get("/admin/getAllData",(req, res, next) => {
+    res.send("Send all data");
+});
+
+app.get("/admin/deleteData",(req, res, next) => {
+    res.send("Deleted data");
+});
+
+app.use("/user",(req,res) => {
+    res.send('Welcome');
 });
 
 app.listen(3000, () => {
