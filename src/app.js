@@ -21,9 +21,14 @@ app.post("/signup", async (req,res) => {
      };
 */
 // createing a new instance of userModel
+try{
     const user = new User(req.body);
     await user.save();
     res.send("User created");
+}
+catch(err){
+    res.status(400).send(err.message);
+}
 
 });
 //delete a user
@@ -75,18 +80,37 @@ app.get("/feed" , async (req,res) => {
         res.status(400).send("Something went wrong");
     }
 });
+
+
+
 //update user
-app.patch("/user", async (req,res) => {
+app.patch("/user/:userId", async (req,res) => { 
     const data = req.body;
-    const userId = req.body.userId;
+    const userId = req.params?.userId;
+    
+    
+    
+
+
+    
     try{
+        
+const ALLOWED_UPDATES = ["photoUrl","about", "gender","age","firstName","lastName","userId","skills"];
+        const isUpdateAllowed = Object.keys(data).every((key) => ALLOWED_UPDATES.includes(key));
+
+if(!isUpdateAllowed) {
+    throw new Error("Update not allowed");
+}
+
         const user = await User.findByIdAndUpdate({
             _id : userId
-        },data, { returnDocument : "before"});
+        },data, { returnDocument : "before",
+            runValidators : true
+        });
         console.log(user);
         res.send("User updated");
     } catch (err) {
-        res.status(400).send("Something went wrong");
+        res.status(400).send("Something went wrong : "+err.message);
     }
 });
 
