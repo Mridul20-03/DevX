@@ -1,13 +1,16 @@
-
 const mongoose = require('mongoose');
+const validator = require('validator');
+
 
 const userSchema = mongoose.Schema({
     firstName: {
         type : String,
         required : true,
+        trim: true,
     },
     lastName: {
         type: String,
+        trim: true,
     },
     emailId: {
         type: String,
@@ -15,6 +18,11 @@ const userSchema = mongoose.Schema({
         unique : true,
         lowercase : true,
         trim: true,
+        validate(value){
+            if(!validator.isEmail(value)){
+                throw new Error("Invalid email address: " + value);
+            }
+        },
     },
     password: {
         type: String,
@@ -35,6 +43,12 @@ const userSchema = mongoose.Schema({
     photoUrl : {
         type: String,
         default : "https://www.phoenixi.co.jp/wp-content/uploads/2018/05/dummy-user-1000x1000.png",
+        
+        validate(value){
+            if(!validator.isURL(value)){
+                throw new Error('Url is not valid: ' + value);
+            }
+        }
     },
     about: {
         type: String,
