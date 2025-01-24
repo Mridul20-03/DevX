@@ -8,6 +8,7 @@ const {
 const bcrypt = require("bcrypt");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
+const { userAuth } = require("./middlewares/auth.js");
 
 // Create an Express.js application
 const app = express();
@@ -25,7 +26,7 @@ app.post("/signup", async (req, res) => {
     validateSignUpData(req);
 
     const { firstName, lastName, emailId, password } = req.body;
-    //encrypt password
+     //encrypt password
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -50,11 +51,10 @@ app.post("/login", async (req, res) => {
     if (!user) {
       throw new Error("Invalid credentials");
     }
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await user.validatePassword(password);
+    
     if (isPasswordValid) {
-      //create a JWT Token
-      const token = await jwt.sign({ _id: user._id }, "DevX@200$3");
-      //Add the token to cookie and send the response back to the user
+      const token = await user.getJWT(); 
       res.cookie("token", token);
       res.send("User successfully logged in");
     } else {
@@ -65,111 +65,23 @@ app.post("/login", async (req, res) => {
   }
 });
 
-app.get("/profile", async (req, res) => {
-  
-  try{
-  const cookies = req.cookies;
-  const { token } = cookies;
-  if(!token) {
-    throw new Error("Invalid Token");
-  }
-  //validating hte token
-  const decodedMessage = jwt.verify(token,"DevX@200$3");
-  const { _id } = decodedMessage;
-  //console.log("Logged in User is: " + _id);
-  const user = await User.findById(_id);
-  if(!user){
-    throw new Error("User does not exist"); 
-  }
-  //console.log("User is: " + user);
-  res.send("User got profile");
-  } catch(err){
+app.get("/profile", userAuth, async (req, res) => {
+  try {
+    const user = req.user;
+    res.send(user);
+  } catch (err) {
     res.status(400).send(err.message);
   }
 });
 
-//delete a user
-app.delete("/user", async (req, res) => {
-  const userId = req.body?.userId;
-  try {
-    const user = await User.findByIdAndDelete({
-      _id: userId,
-    });
-    res.send("User deleted Successfully");
-  } catch (err) {
-    res.status(400).send("Something went wrong");
-  }
-});
-//get user by email
-app.get("/user", async (req, res) => {
-  const userEmail = req.body.emailId;
-
-  try {
-    const user = await User.findOne({
-      emailId: userEmail,
-    });
-
-    if (user.length === 0) {
-      res.status(404).send("User not found");
-    } else {
-      res.send(user);
-    }
-  } catch (err) {
-    res.status(400).send("Something went wrong");
-  }
-});
-//Fetch api
-app.get("/feed", async (req, res) => {
-  try {
-    const users = await User.find({});
-
-    if (users.length === 0) {
-      res.status(404).send("User not found");
-    } else {
-      res.send(users);
-    }
-  } catch (err) {
-    res.status(400).send("Something went wrong");
-  }
+app.post("/sendConnectionRequest", userAuth , async (req, res) => {
+  const user = req.user;
+  // Send the connection request
+  console.log("Send connection request");
+  res.send(user.firstName + " sent the connection request");
 });
 
-//update user
-app.patch("/user/:userId", async (req, res) => {
-  const data = req.body;
-  const userId = req.params?.userId;
 
-  try {
-    const ALLOWED_UPDATES = [
-      "photoUrl",
-      "about",
-      "gender",
-      "age",
-      "firstName",
-      "lastName",
-      "userId",
-      "skills",
-    ];
-    const isUpdateAllowed = Object.keys(data).every((key) =>
-      ALLOWED_UPDATES.includes(key)
-    );
-
-    if (!isUpdateAllowed) {
-      throw new Error("Update not allowed");
-    }
-
-    const user = await User.findByIdAndUpdate(
-      {
-        _id: userId,
-      },
-      data,
-      { returnDocument: "before", runValidators: true }
-    );
-    console.log(user);
-    res.send("User updated");
-  } catch (err) {
-    res.status(400).send("Something went wrong : " + err.message);
-  }
-});
 
 // Connect to the database first, then start the server
 connectDb()
